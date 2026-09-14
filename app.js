@@ -636,7 +636,7 @@
                 owner_focus_area: answers["OWNER-FOCUS-001"] || "not_sure"
             };
 
-            const response = await fetch("export-pdf", {
+            const response = await fetch("/export-pdf", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
@@ -699,7 +699,7 @@
         setFullRecommendationsLoading(true);
 
         try {
-            const response = await fetch("recommendations", {
+            const response = await fetch("/recommendations", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(lastAssessmentPayload)

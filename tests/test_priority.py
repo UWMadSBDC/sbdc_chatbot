@@ -353,6 +353,31 @@ class PriorityConfigCoverageTests(unittest.TestCase):
 
 
 class AssessResponseShapeTests(unittest.TestCase):
+    def test_security_headers_are_applied(self):
+        os.environ.setdefault("OPENROUTER_API_KEY", "test-key")
+        main = importlib.import_module("main")
+
+        class FakeResponse:
+            def __init__(self):
+                self.headers = {}
+
+        async def fake_call_next(request):
+            return FakeResponse()
+
+        response = asyncio.run(main.add_security_headers(None, fake_call_next))
+
+        self.assertEqual(response.headers["X-Content-Type-Options"], "nosniff")
+        self.assertEqual(response.headers["X-Frame-Options"], "DENY")
+        self.assertEqual(response.headers["Referrer-Policy"], "no-referrer")
+        self.assertIn("frame-ancestors 'none'", response.headers["Content-Security-Policy"])
+        self.assertIn("default-src 'self'", response.headers["Content-Security-Policy"])
+        self.assertIn("accelerometer=()", response.headers["Permissions-Policy"])
+        self.assertEqual(
+            response.headers["Strict-Transport-Security"],
+            "max-age=31536000; includeSubDomains",
+        )
+        self.assertNotEqual(response.headers.get("Access-Control-Allow-Origin"), "*")
+
     def test_assess_returns_priority_recommendations_without_full_report(self):
         os.environ.setdefault("OPENROUTER_API_KEY", "test-key")
         if "reportlab" not in sys.modules:

@@ -4,7 +4,7 @@
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>Business Assessment</title>
-        <link rel="stylesheet" href="./styles.css" />
+        <link rel="stylesheet" href="/styles.css" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
     </head>
@@ -26,8 +26,8 @@
             <main class="content" id="content" role="main">
                 <header class="topbar">
                     <div class="logo-group">
-                        <img src="wsb_logo.png" alt="Wisconsin School of Business logo" class="logo wsb-logo">
-                        <img src="image 2.png" alt="SBDC logo" class="logo sbdc-logo">
+                        <img src="/wsb_logo.png" alt="Wisconsin School of Business logo" class="logo wsb-logo">
+                        <img src="/image%202.png" alt="SBDC logo" class="logo sbdc-logo">
                     </div>
                     <h1 id="sbdc-heading">Assessment</h1>
                     <div class="progress-wrap" id="progressWrap">
@@ -73,16 +73,22 @@
         <script>
             window.APP_CONFIG = {
                 submitUrl: "/assess",
-                prefillUrl: null,                          
+                prefillUrl: null,
                 dataPaths: {
-                    questions: "./questions.json",
-                    functionalAreas: "./functional_area.json"
+                    questions: "/questions.json",
+                    functionalAreas: "/functional_area.json"
                 }
             };
 
         </script>
-        <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.6/dist/purify.min.js"></script>
-        <script src="./app.js" defer></script>
+        <script
+            src="https://cdn.jsdelivr.net/npm/marked@15.0.12/marked.min.js"
+            integrity="sha384-948ahk4ZmxYVYOc+rxN1H2gM1EJ2Duhp7uHtZ4WSLkV4Vtx5MUqnV+l7u9B+jFv+"
+            crossorigin="anonymous"></script>
+        <script
+            src="https://cdn.jsdelivr.net/npm/dompurify@3.2.6/dist/purify.min.js"
+            integrity="sha384-JEyTNhjM6R1ElGoJns4U2Ln4ofPcqzSsynQkmEc/KGy6336qAZl70tDLufbkla+3"
+            crossorigin="anonymous"></script>
+        <script src="/app.js" defer></script>
     </body>
 </html>

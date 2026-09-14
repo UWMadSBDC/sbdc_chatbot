@@ -17,13 +17,53 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=config.cors_allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 service = AssessmentService()
+
+
+SECURITY_HEADERS = {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Content-Security-Policy": (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com; "
+        "img-src 'self' data:; "
+        "connect-src 'self'; "
+        "form-action 'self'; "
+        "base-uri 'self'; "
+        "object-src 'none'; "
+        "frame-ancestors 'none'; "
+        "upgrade-insecure-requests"
+    ),
+    "Referrer-Policy": "no-referrer",
+    "Permissions-Policy": (
+        "accelerometer=(), autoplay=(), camera=(), cross-origin-isolated=(), "
+        "display-capture=(), encrypted-media=(), fullscreen=(), geolocation=(), "
+        "gyroscope=(), keyboard-map=(), magnetometer=(), microphone=(), midi=(), "
+        "payment=(), picture-in-picture=(), publickey-credentials-get=(), "
+        "screen-wake-lock=(), sync-xhr=(self), usb=(), web-share=(), "
+        "xr-spatial-tracking=(), clipboard-read=(), clipboard-write=(), "
+        "gamepad=(), hid=(), idle-detection=(), interest-cohort=(), serial=(), "
+        "unload=()"
+    ),
+    "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+}
+
+
+@app.middleware("http")
+async def add_security_headers(request, call_next):
+    response = await call_next(request)
+    for header, value in SECURITY_HEADERS.items():
+        response.headers.setdefault(header, value)
+    return response
+
 
 @app.get("/health")
 async def health_check():

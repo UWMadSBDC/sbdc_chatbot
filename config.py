@@ -1,6 +1,7 @@
 import os
 import json
 
+
 class Config:
     def __init__(self):
         base_path = os.path.dirname(os.path.abspath(__file__))
@@ -18,6 +19,7 @@ class Config:
         self.catalysts = self._load_json(self.catalyst_path)
         self.functional_areas = self._load_json(self.functional_path)
         self.priority_rankings = self._load_json(self.priority_rankings_path)
+        self.cors_allowed_origins = self._load_cors_origins()
 
     def _load_json(self, path):
         if not os.path.exists(path):
@@ -25,6 +27,16 @@ class Config:
         with open(path, 'r') as f:
             return json.load(f)
 
+    def _load_cors_origins(self):
+        raw_origins = os.getenv(
+            "CORS_ALLOWED_ORIGINS",
+            "https://sbdc-chatbot-espc.onrender.com,http://localhost:8000,http://127.0.0.1:8000",
+        )
+        return [
+            origin.strip().rstrip("/")
+            for origin in raw_origins.split(",")
+            if origin.strip()
+        ]
 
-# Expose a shared instance of the config
+
 config = Config()
