@@ -3,6 +3,7 @@ import os
 import json
 import random
 import math
+import logging
 from typing import Any, List, Dict
 import requests
 from config import config
@@ -12,6 +13,8 @@ from schema import AssessmentResponse, AssessmentReport, CategoryScore
 
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 
 class AssessmentService:
@@ -390,6 +393,7 @@ class AssessmentService:
                         parsed[area].append(signal)
             return parsed
         except Exception:
+            logger.exception("OpenRouter note signal classification failed; using regex fallback.")
             return fallback
 
     def _parse_signal_response(self, text: str, allowed_areas: set[str]) -> Dict[str, List[str]]:
@@ -515,6 +519,7 @@ class AssessmentService:
             ]
             query_embeddings = self._generate_openrouter_embeddings(query_texts)
         except Exception:
+            logger.exception("OpenRouter embedding retrieval failed; using primary recommendation anchors only.")
             return {area: [] for area in queries}
 
         results: Dict[str, List[Dict[str, Any]]] = {}
@@ -627,7 +632,7 @@ class AssessmentService:
             if parsed:
                 return parsed
         except Exception:
-            pass
+            logger.exception("OpenRouter priority recommendation generation failed; using local fallback cards.")
 
         return self._fallback_priority_recommendations(candidates, catalyst)
 
@@ -1093,7 +1098,10 @@ class AssessmentService:
             if parsed and not self._missing_recommendation_areas(parsed["report_markdown"], [area]):
                 return parsed["report_markdown"]
         except Exception:
-            pass
+            logger.exception(
+                "OpenRouter full recommendation generation failed for area %s; using local fallback section.",
+                area,
+            )
 
         return self._append_fallback_recommendation_sections(
             "",
