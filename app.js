@@ -95,11 +95,55 @@
     }
 
     function renderRecommendationsHTML(recommendations) {
+        const renderSection = (markdown) => {
+            const lines = String(markdown ?? "").split(/\r?\n/);
+            let html = "";
+            let inList = false;
+
+            lines.forEach((line) => {
+                const trimmed = line.trim();
+                const heading = trimmed.match(/^###\s+(.+)$/);
+                const item = trimmed.match(/^\d+[.)]\s+(.+)$/);
+
+                if (!trimmed) {
+                    if (inList) {
+                        html += "</ol>";
+                        inList = false;
+                    }
+                    return;
+                }
+                if (heading) {
+                    if (inList) {
+                        html += "</ol>";
+                        inList = false;
+                    }
+                    html += `<h4>${escapeHTML(heading[1])}</h4>`;
+                    return;
+                }
+                if (item) {
+                    if (!inList) {
+                        html += '<ol class="recommendation-list">';
+                        inList = true;
+                    }
+                    html += `<li>${sanitizeLLMHtml(item[1])}</li>`;
+                    return;
+                }
+                if (inList) {
+                    html += "</ol>";
+                    inList = false;
+                }
+                html += `<p>${sanitizeLLMHtml(trimmed)}</p>`;
+            });
+
+            if (inList) html += "</ol>";
+            return html;
+        };
+
         if (Array.isArray(recommendations)) {
             return recommendations
                 .map(rec => `
                     <div class="recommendation">
-                        ${sanitizeLLMHtml(rec)}
+                        ${renderSection(rec)}
                     </div>
                 `)
                 .join("");
@@ -108,7 +152,7 @@
         if (recommendations) {
             return `
                 <div class="recommendation">
-                    ${sanitizeLLMHtml(recommendations)}
+                    ${renderSection(recommendations)}
                 </div>
             `;
         }

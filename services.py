@@ -4,6 +4,7 @@ import json
 import random
 import math
 import logging
+import re
 from typing import Any, List, Dict
 import requests
 from config import config
@@ -237,9 +238,16 @@ class AssessmentService:
                 "schema": {
                     "type": "object",
                     "properties": {
-                        "report_markdown": {"type": "string"},
+                        "heading": {"type": "string"},
+                        "introduction": {"type": "string"},
+                        "recommendations": {
+                            "type": "array",
+                            "minItems": 3,
+                            "maxItems": 3,
+                            "items": {"type": "string"},
+                        },
                     },
-                    "required": ["report_markdown"],
+                    "required": ["heading", "introduction", "recommendations"],
                     "additionalProperties": False,
                 },
             },
@@ -1078,8 +1086,8 @@ class AssessmentService:
             "- Total response for this functional area: 250-300 words (roughly 3 paragraphs of 3-4 sentences each)",
             "",
             "## STRUCTURED RESPONSE REQUIREMENTS:",
-            "- Return JSON with report_markdown.",
-            "- report_markdown must contain only the user-visible recommendations for this one functional area, starting directly with the functional area heading.",
+            "- Return the required JSON object with heading, introduction, and exactly three separate recommendations.",
+            "- Put only the functional area name in heading, the opening statement in introduction, and one complete recommendation paragraph in each recommendations array item.",
             "",
             "Begin now."
         ])
@@ -1192,7 +1200,7 @@ class AssessmentService:
                 + "\n\n".join(paragraphs)
             )
 
-        return "\n\n".join(sections)
+        return self._normalize_recommendation_markdown("\n\n".join(sections))
 
     def _parse_recommendation_response(self, text: str) -> Dict[str, Any] | None:
         cleaned = text.strip()
@@ -1200,10 +1208,89 @@ class AssessmentService:
         if not cleaned:
             return None
         data = json.loads(cleaned)
-        report_markdown = str(data.get("report_markdown", "")).strip()
+        recommendation_items = data.get("recommendations")
+        if isinstance(recommendation_items, list) and len(recommendation_items) == 3:
+            heading = re.sub(r"^#{1,6}\s*", "", str(data.get("heading", "")).strip())
+            introduction = str(data.get("introduction", "")).strip()
+            items = [str(item).strip() for item in recommendation_items]
+            if not heading or not all(items):
+                return None
+            report_markdown = (
+                f"### {heading}\n\n{introduction}\n\n"
+                + "\n\n".join(f"{index}. {item}" for index, item in enumerate(items, 1))
+            )
+        else:
+            # Keep compatibility with older model responses during rollout.
+            report_markdown = str(data.get("report_markdown", "")).strip()
         if not report_markdown:
             return None
-        return {"report_markdown": report_markdown}
+        return {"report_markdown": self._normalize_recommendation_markdown(report_markdown)}
+
+    def _normalize_recommendation_markdown(self, markdown_text: str) -> str:
+        """Normalize generated and fallback recommendations for consistent web/PDF display."""
+        sections = []
+        current_heading = None
+        current_intro = []
+        current_items = []
+
+        def flush_section():
+            if not current_heading and not current_intro and not current_items:
+                return
+            heading = current_heading or "Additional Recommendations"
+            lines = [f"### {heading}"]
+            intro = " ".join(part.strip() for part in current_intro if part.strip())
+            if intro:
+                lines.extend(["", intro])
+            if current_items:
+                lines.append("")
+                lines.extend(f"{index}. {item}" for index, item in enumerate(current_items[:3], 1))
+            sections.append("\n".join(lines))
+
+        for raw_line in str(markdown_text or "").splitlines():
+            line = raw_line.strip()
+            if not line:
+                continue
+
+            heading_match = re.match(r"^#{1,6}\s*(.+?)\s*#*$", line)
+            if heading_match:
+                flush_section()
+                current_heading = heading_match.group(1).strip().strip("*# ")
+                current_intro = []
+                current_items = []
+                continue
+
+            chunks = re.split(r"(?<!\S)(?=\d+[.)]\s+)", line)
+            for chunk in chunks:
+                self._consume_recommendation_line(chunk, current_items, current_intro)
+
+        flush_section()
+        return "\n\n".join(sections)
+
+    def _consume_recommendation_line(
+        self,
+        raw_line: str,
+        current_items: List[str],
+        current_intro: List[str],
+    ) -> None:
+        line = raw_line.strip()
+        if not line:
+            return
+        was_numbered = bool(re.match(r"^\s*\d+[.)]\s+", line))
+        line = re.sub(r"^\s*(?:[-*+]\s+|\d+[.)]\s+)", "", line)
+        line = re.sub(r"\*\*(.*?)\*\*|__(.*?)__", lambda m: m.group(1) or m.group(2), line)
+        line = re.sub(r"(?<!\*)\*(?!\*)(.*?)\*(?!\*)|_(.*?)_", lambda m: m.group(1) or m.group(2), line)
+        line = re.sub(r"\s+", " ", line).strip()
+        if not line:
+            return
+        if current_items or was_numbered:
+            if was_numbered or not current_items:
+                current_items.append(line)
+            else:
+                current_items[-1] = f"{current_items[-1]} {line}"
+        elif not current_intro:
+            current_intro.append(line)
+        else:
+            current_items.append(line)
 
 
     def _get_tier(self, score: float) -> str:

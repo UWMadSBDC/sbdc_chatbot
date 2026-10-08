@@ -572,6 +572,33 @@ h1, h2, h3, h4,
     border-radius: 8px;
 }
 
+.recommendation h4 {
+    margin: 2px 0 10px;
+    color: var(--primary);
+    font-family: var(--font-heading);
+    font-size: 17px;
+}
+
+.recommendation p {
+    margin: 0 0 10px;
+    line-height: 1.6;
+}
+
+.recommendation-list {
+    margin: 0;
+    padding-left: 24px;
+}
+
+.recommendation-list li {
+    padding-left: 4px;
+    margin: 0 0 12px;
+    line-height: 1.6;
+}
+
+.recommendation-list li:last-child {
+    margin-bottom: 2px;
+}
+
 .recommendation-status {
     color: var(--muted);
 }
